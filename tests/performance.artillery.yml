@@ -1,0 +1,39 @@
+# Performance test (Artillery). Run against a seeded server:
+#   npm i -g artillery && artillery run backend/tests/performance.artillery.yml
+# Note: the API rate limiter (300 req / 15 min / IP) will throttle a single-IP load test.
+# Start the server with NODE_ENV=test for load testing, or raise the limit temporarily.
+config:
+  target: "http://localhost:4000/api"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: Warm up
+    - duration: 60
+      arrivalRate: 20
+      name: Peak enrollment period
+  ensure:
+    p95: 500
+    maxErrorRate: 1
+scenarios:
+  - name: Student views enrollment pages
+    flow:
+      - post:
+          url: "/auth/login"
+          json:
+            email: "student@uniserve.edu"
+            password: "Password123"
+          capture:
+            json: "$.token"
+            as: "token"
+      - get:
+          url: "/student/sections"
+          headers:
+            Authorization: "Bearer {{ token }}"
+      - get:
+          url: "/student/balance"
+          headers:
+            Authorization: "Bearer {{ token }}"
+      - get:
+          url: "/student/clearance"
+          headers:
+            Authorization: "Bearer {{ token }}"
